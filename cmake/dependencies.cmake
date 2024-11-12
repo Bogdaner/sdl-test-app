@@ -46,7 +46,7 @@ function(setup_dependencies)
   )
   set_target_properties(imgui PROPERTIES CXX_STANDARD 17)
 
-  if(PLATFORM STREQUAL "SIMULATOR64")
+  if(IOS_BUILD)
     target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_ES2)
   endif()
 
@@ -56,7 +56,7 @@ function(setup_dependencies)
     # SDL2::SDL2-static)
     target_link_libraries(imgui PRIVATE SDL2::SDL2main)
   endif()
-  target_link_libraries(imgui PRIVATE SDL2::SDL2)
+  target_link_libraries(imgui PRIVATE SDL2::SDL2-static)
   target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
 
   # ---- Group targets to make generated VS, Xcode solutions cleaner ----

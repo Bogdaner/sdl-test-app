@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.28)
 
+if(PLATFORM STREQUAL "SIMULATOR64"
+   OR PLATFORM STREQUAL "OS64"
+   OR PLATFORM STREQUAL "OS64COMBINED"
+)
+  set(IOS_BUILD TRUE)
+endif()
+
 # ---- CMake Includes ----
 include(cmake/utils.cmake)
 include(cmake/dependencies.cmake)
@@ -20,9 +27,7 @@ project(
 )
 
 # ---- Third Parties ----
-if(PLATFORM STREQUAL "SIMULATOR64")
-
-else()
+if(NOT IOS_BUILD)
   find_package(OpenGL REQUIRED)
 endif()
 
@@ -30,19 +35,32 @@ setup_dependencies()
 
 # ---- Create library ----
 add_executable(${PROJECT_NAME})
-set(MACOSX_BUNDLE_LONG_VERSION_STRING "1.0")
-set(MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
-set(MACOSX_BUNDLE_BUNDLE_VERSION "1.0")
-set_target_properties(
-  ${PROJECT_NAME}
-  PROPERTIES MACOSX_BUNDLE TRUE
-             MACOSX_BUNDLE_INFO_PLIST cmake/ios/Info.plist
-             # New Xcode attributes for General tab
-             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mycompany.myapp"
-             XCODE_ATTRIBUTE_PRODUCT_NAME ${PROJECT_NAME}
-             XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${CMAKE_PROJECT_VERSION}
-             XCODE_ATTRIBUTE_MARKETING_VERSION ${CMAKE_PROJECT_VERSION}
-)
+
+if(IOS_BUILD)
+  target_sources(${PROJECT_NAME} PRIVATE ./iOS/LaunchScreen.storyboard)
+  set_source_files_properties(
+    ./iOS/LaunchScreen.storyboard PROPERTIES MACOSX_PACKAGE_LOCATION Resources
+  )
+endif()
+
+set(MACOSX_BUNDLE_LONG_VERSION_STRING ${CMAKE_PROJECT_VERSION})
+set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
+set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
+
+if(CMAKE_GENERATOR STREQUAL Xcode)
+  set_target_properties(
+    ${PROJECT_NAME}
+    PROPERTIES MACOSX_BUNDLE TRUE
+               MACOSX_BUNDLE_INFO_PLIST ./iOS/Info.plist
+               # Xcode attributes for General tab
+               XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mycompany.unique.myapp"
+               XCODE_ATTRIBUTE_PRODUCT_NAME ${PROJECT_NAME}
+               XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${CMAKE_PROJECT_VERSION}
+               XCODE_ATTRIBUTE_MARKETING_VERSION ${CMAKE_PROJECT_VERSION}
+               XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2" # 1 for iPhone, 2 for iPad
+               XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED YES
+  )
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
 
@@ -56,9 +74,10 @@ if(TARGET SDL2::SDL2main)
   target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2 imgui::imgui)
-if(PLATFORM STREQUAL "SIMULATOR64")
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2-static imgui::imgui)
+if(IOS_BUILD)
   target_link_libraries(${PROJECT_NAME} PRIVATE "-framework OpenGLES")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE IOS_BUILD)
 else()
   target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 endif()
@@ -70,7 +89,7 @@ add_subdirectory(src)
 # Group sources
 _utils_group_target_sources(${PROJECT_NAME})
 
-if(WIN32)
+if(WIN32) # Copy SDL2.dll to output folder on Windows
   add_custom_command(
     TARGET ${PROJECT_NAME}
     POST_BUILD

@@ -10,7 +10,7 @@
 
 #include <string>
 
-#if defined(IMGUI_IMPL_OPENGL_ES2)
+#if defined(IOS_BUILD)
   #include <SDL_opengles2.h>
 #else
   #include <SDL_opengl.h>

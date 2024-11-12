@@ -2,13 +2,12 @@
 #include <backends/imgui_impl_sdl2.h>
 #include <imgui.h>
 
-#include <OGLWindow.hpp>
-#include <iostream>
-
-#ifdef IMGUI_IMPL_OPENGL_ES2
+#ifdef IOS_BUILD
   #include <OpenGLES/ES2/gl.h>
   #include <OpenGLES/ES2/glext.h>
 #endif
+
+#include <OGLWindow.hpp>
 
 namespace SDLTest {
   OGLWindow::OGLWindow(int width, int height) {
@@ -38,6 +37,13 @@ namespace SDLTest {
     while (!done) {
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
+#ifdef IOS_BUILD
+        if (io.WantTextInput) {
+          SDL_StartTextInput();
+        } else {
+          SDL_StopTextInput();
+        }
+#endif
         ImGui_ImplSDL2_ProcessEvent(&event);
         if (event.type == SDL_QUIT) done = true;
         if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE
@@ -148,14 +154,16 @@ namespace SDLTest {
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 #endif
 
+    SDL_SetHint(SDL_HINT_ENABLE_SCREEN_KEYBOARD, "1");
+
     // Create window with graphics context
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags
         = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    m_pwindow = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED,
-                                 SDL_WINDOWPOS_CENTERED, width, height, window_flags);
+    m_pwindow = SDL_CreateWindow("sdl-test-app", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                 width, height, window_flags);
 
     if (m_pwindow == nullptr) {
       std::cout << "Error: SDL_CreateWindow():" << SDL_GetError() << "\n";
@@ -174,6 +182,12 @@ namespace SDLTest {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+
+#ifdef IOS_BUILD
+    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
+    io.FontGlobalScale = 1.2f;
+    ImGui::GetStyle().ScaleAllSizes(1.2f);
+#endif
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
