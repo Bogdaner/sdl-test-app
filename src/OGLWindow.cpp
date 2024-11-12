@@ -5,6 +5,11 @@
 #include <OGLWindow.hpp>
 #include <iostream>
 
+#ifdef IMGUI_IMPL_OPENGL_ES2
+  #include <OpenGLES/ES2/gl.h>
+  #include <OpenGLES/ES2/glext.h>
+#endif
+
 namespace SDLTest {
   OGLWindow::OGLWindow(int width, int height) {
     SetupSDLWindow(width, height);

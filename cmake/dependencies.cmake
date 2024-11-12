@@ -3,6 +3,14 @@ include(cmake/utils.cmake)
 
 function(setup_dependencies)
 
+  # retrieve a copy of the current directory's `COMPILE_OPTIONS`
+  get_directory_property(old_dir_compile_options COMPILE_OPTIONS)
+
+  # modify the actual value of the current directory's `COMPILE_OPTIONS` (copy from above line
+  # remains unchanged). subdirectories inherit a copy of their parent's `COMPILE_OPTIONS` at the
+  # time the subdirectory is processed.
+  add_compile_options(-w)
+
   # ---- SDL2 ----
   FetchContent_Declare(
     SDL2
@@ -36,6 +44,11 @@ function(setup_dependencies)
                LIBRARY_OUTPUT_DIRECTORY ${imgui_BINARY_DIR}
                RUNTIME_OUTPUT_DIRECTORY ${imgui_BINARY_DIR}
   )
+  set_target_properties(imgui PROPERTIES CXX_STANDARD 17)
+
+  if(PLATFORM STREQUAL "SIMULATOR64")
+    target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_ES2)
+  endif()
 
   # SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
   if(TARGET SDL2::SDL2main)
@@ -55,5 +68,8 @@ function(setup_dependencies)
   foreach(target ${PROJECT_THIRD_PARTY_TARGETS})
     set_target_properties(${target} PROPERTIES FOLDER "3rdParty")
   endforeach()
+
+  # restore the current directory's old `COMPILE_OPTIONS`
+  set_directory_properties(PROPERTIES COMPILE_OPTIONS "${old_dir_compile_options}")
 
 endfunction()

@@ -20,12 +20,29 @@ project(
 )
 
 # ---- Third Parties ----
-find_package(OpenGL REQUIRED)
+if(PLATFORM STREQUAL "SIMULATOR64")
+
+else()
+  find_package(OpenGL REQUIRED)
+endif()
 
 setup_dependencies()
 
 # ---- Create library ----
 add_executable(${PROJECT_NAME})
+set(MACOSX_BUNDLE_LONG_VERSION_STRING "1.0")
+set(MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
+set(MACOSX_BUNDLE_BUNDLE_VERSION "1.0")
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES MACOSX_BUNDLE TRUE
+             MACOSX_BUNDLE_INFO_PLIST cmake/ios/Info.plist
+             # New Xcode attributes for General tab
+             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.mycompany.myapp"
+             XCODE_ATTRIBUTE_PRODUCT_NAME ${PROJECT_NAME}
+             XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${CMAKE_PROJECT_VERSION}
+             XCODE_ATTRIBUTE_MARKETING_VERSION ${CMAKE_PROJECT_VERSION}
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
 
@@ -39,7 +56,12 @@ if(TARGET SDL2::SDL2main)
   target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2 imgui::imgui OpenGL::GL)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2 imgui::imgui)
+if(PLATFORM STREQUAL "SIMULATOR64")
+  target_link_libraries(${PROJECT_NAME} PRIVATE "-framework OpenGLES")
+else()
+  target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>)
 
